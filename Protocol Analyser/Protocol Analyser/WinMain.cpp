@@ -49,7 +49,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
 			size = atoi(sizeStr);
 			times = atoi(timesStr);
 
-			tcpConnection.SendPacket(port, ip, size, times);
+			udpConnection.SendPacket(port, ip, size, times);
 			break;
 		case ID_MODE_CLIENT:
 		case ID_MODE_SERVER:
@@ -60,7 +60,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
 	case WM_SOCKET:
 		if (mode != Server)
 			return 0;
-
+		
 		if (WSAGETSELECTERROR(lParam)) {
 			int errorCode = WSAGETSELECTERROR(lParam);
 			perror("Socket failed with error " + errorCode);
@@ -71,7 +71,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
 				tcpConnection.Accept(wParam);
 				break;
 			case FD_READ:
-				tcpConnection.ReceivePacket(DEFAULTPORT, wParam);
+				udpConnection.ReceivePacket(DEFAULTPORT, wParam);
 				return 0;
 			}
 		}
@@ -170,7 +170,7 @@ void ChangeMode(WPARAM wParam) {
 		Update(ID_MODE_CLIENT);
 		break;
 	case ID_MODE_SERVER:
-		tcpConnection.StartServer();
+		udpConnection.StartServer();
 		mode = Server;
 		Update(ID_MODE_SERVER);
 		break;
@@ -208,3 +208,4 @@ void Update(int mode) {
 		break;
 	}
 }
+

@@ -3,8 +3,6 @@
 #include "ProtocolBase.h"
 #include <string>
 
-#define WM_SOCKET (WM_USER + 1)
-
 typedef struct _SOCKET_INFORMATION {
 	BOOL RecvPosted;
 	CHAR Buffer[BUFFSIZE];

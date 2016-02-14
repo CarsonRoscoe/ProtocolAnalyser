@@ -6,7 +6,8 @@
 #include <WinSock2.h>
 
 #define DEFAULTPORT 7000
-#define BUFFSIZE 8192
+#define BUFFSIZE 200000
+#define WM_SOCKET (WM_USER + 1)
 
 enum Mode {
 	Server, Client

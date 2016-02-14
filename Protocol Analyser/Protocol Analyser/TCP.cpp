@@ -7,8 +7,8 @@
 
 extern HWND hwnd;
 extern HWND textBoxResult;
-struct hostent *hp;
-struct sockaddr_in server, client;
+struct	hostent	*hp;
+struct	sockaddr_in server, client;
 
 #define CreateThread(func,id) CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)(func),(LPVOID)hwnd,0,(LPDWORD)(id))
 
@@ -34,12 +34,12 @@ void TCP::StartServer() {
 	WSADATA wsaData;
 
 	if ((Ret = WSAStartup(0x0202, &wsaData)) != 0) {
-		printf("WSAStartup failed with error %d\n", Ret);
+		perror("WSAStartup failed with error " + Ret);
 		return;
 	}
 
 	if ((Listen = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
-		printf("socket() failed with error %d\n", WSAGetLastError());
+		perror("socket() failed with error " + WSAGetLastError());
 		return;
 	}
 
@@ -50,7 +50,7 @@ void TCP::StartServer() {
 	InternetAddr.sin_port = htons(DEFAULTPORT);
 
 	if (bind(Listen, (PSOCKADDR)&InternetAddr, sizeof(InternetAddr)) == SOCKET_ERROR) {
-		printf("bind() failed with error %d\n", WSAGetLastError());
+		perror("bind() failed with error " + WSAGetLastError());
 		return;
 	}
 
@@ -122,10 +122,11 @@ void TCP::SendPacket(size_t port, char* IP, size_t size, size_t quantity) {
 		DataBuff.len = size;
 		if (WSASend(connection, &DataBuff, 1, &sb, 0, &ol, NULL) == SOCKET_ERROR) {
 			int error = WSAGetLastError();
+			OutputDebugString("" + error);
 			perror("WSASend failed");
 			exit(1);
 		};
-		Sleep(50);
+		//Sleep(50);
 	}
 
 	closesocket(connection);
@@ -159,13 +160,18 @@ void TCP::ReceivePacket(size_t port, WPARAM wParam) {
 	long totalBytes = 0;
 	char bytesReadString[32];
 	int packetNum = 1;
-	do {
-		SocketInfo = GetSocketInformation(wParam);
-
+	SocketInfo = GetSocketInformation(wParam);
+	if (SocketInfo == NULL)
+		return;
+	try {
 		SocketInfo->DataBuf.buf = SocketInfo->Buffer;
 		SocketInfo->DataBuf.len = BUFFSIZE;
+	} catch (int e) {
+		return;
+	}
 
-		Flags = 0;
+	Flags = 0;
+	do {
 		if (WSARecv(SocketInfo->Socket, &(SocketInfo->DataBuf), 1, &RecvBytes, &Flags, NULL, NULL) == SOCKET_ERROR) {
 			if (WSAGetLastError() != WSAEWOULDBLOCK) {
 				printf("WSARecv() failed with error %d\n", WSAGetLastError());
