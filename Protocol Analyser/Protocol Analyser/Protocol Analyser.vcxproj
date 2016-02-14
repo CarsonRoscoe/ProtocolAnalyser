@@ -112,9 +112,11 @@
   <ItemGroup>
     <ClInclude Include="Client.h" />
     <ClInclude Include="ProtocolBase.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="Server.h" />
     <ClInclude Include="TCP.h" />
     <ClInclude Include="UDP.h" />
+    <ClInclude Include="UIWrappers.h" />
     <ClInclude Include="WinMain.h" />
   </ItemGroup>
   <ItemGroup>
@@ -122,7 +124,14 @@
     <ClCompile Include="Server.cpp" />
     <ClCompile Include="TCP.cpp" />
     <ClCompile Include="UDP.cpp" />
+    <ClCompile Include="UIWrappers.cpp" />
     <ClCompile Include="WinMain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\..\..\..\Windows\System32\ws2_32.dll" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

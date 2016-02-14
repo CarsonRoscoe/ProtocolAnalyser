@@ -1,11 +1,12 @@
 ﻿  WinMain.cpp
-c:\users\carson\documents\visual studio 2015\projects\protocol analyser\protocol analyser\currentprotocol.h(18): warning C4091: 'typedef ': ignored on left of 'CurrentProtocol' when no variable is declared
-c:\users\carson\documents\visual studio 2015\projects\protocol analyser\protocol analyser\winmain.cpp(34): warning C4101: 'hMenu': unreferenced local variable
-c:\users\carson\documents\visual studio 2015\projects\protocol analyser\protocol analyser\winmain.cpp(35): warning C4101: 'paintstruct': unreferenced local variable
+c:\users\carson\documents\github\protocolanalyser\protocol analyser\protocol analyser\winmain.cpp(95): warning C4302: 'type cast': truncation from 'LPSTR' to 'WORD'
+c:\users\carson\documents\github\protocolanalyser\protocol analyser\protocol analyser\winmain.cpp(100): warning C4302: 'type cast': truncation from 'LPSTR' to 'WORD'
+  UIWrappers.cpp
   UDP.cpp
   TCP.cpp
+c:\users\carson\documents\github\protocolanalyser\protocol analyser\protocol analyser\tcp.cpp(87): warning C4267: 'argument': conversion from 'size_t' to 'u_short', possible loss of data
   Server.cpp
   Client.cpp
   Generating Code...
-  Protocol Analyser.vcxproj -> c:\users\carson\documents\visual studio 2015\Projects\Protocol Analyser\Debug\Protocol Analyser.exe
-  Protocol Analyser.vcxproj -> c:\users\carson\documents\visual studio 2015\Projects\Protocol Analyser\Debug\Protocol Analyser.pdb (Partial PDB)
+  Protocol Analyser.vcxproj -> C:\Users\Carson\Documents\GitHub\ProtocolAnalyser\Protocol Analyser\Debug\Protocol Analyser.exe
+  Protocol Analyser.vcxproj -> C:\Users\Carson\Documents\GitHub\ProtocolAnalyser\Protocol Analyser\Debug\Protocol Analyser.pdb (Partial PDB)
