@@ -1,5 +1,14 @@
 #pragma once
 
+#define LABELWIDTH 100
+#define LABELHEIGHT 25
+#define COMBOHEIGHT 100
+#define EDITSTART 110
+#define EDITWIDTH 140
+#define EDITHEIGHT 30
+#define SPACING 60
+#define MARGIN 40
+
 #include <Windows.h>
 #include <CommCtrl.h>
 #include "resource.h"

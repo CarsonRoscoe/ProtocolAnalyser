@@ -11,6 +11,10 @@
 
 #pragma warning (disable: 4096)
 
+enum ProtocolMode {
+	TCPmode, UDPmode
+};
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam);
 int InitWindow(HINSTANCE hInstance);
 void ChangeMode(WPARAM wParam);
@@ -32,5 +36,5 @@ HWND buttonSend;
 HDC hdc;
 TCP tcpConnection(Client);
 UDP udpConnection(Client);
-Protocol &protocol = tcpConnection;
 Mode mode = Client;
+ProtocolMode protocol = TCPmode;

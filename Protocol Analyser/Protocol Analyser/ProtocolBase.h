@@ -6,8 +6,9 @@
 #include <WinSock2.h>
 
 #define DEFAULTPORT 7000
-#define BUFFSIZE 200000
+#define BUFFSIZE 1000000
 #define WM_SOCKET (WM_USER + 1)
+#define MAXTIMEOUT 1000
 
 enum Mode {
 	Server, Client
@@ -19,19 +20,11 @@ public:
 	Protocol() {};
 	~Protocol() {};
 	virtual void SendPacket(size_t port, char* IP, size_t packetSize, size_t packetsToSend) = 0;
+	virtual void ReceivePacket(size_t port, WPARAM wParam) {};
 
 	//Public Variables
 
 protected:
-	//Protected Methods
-
-	//Protected Variables
 	Mode mode;
-	virtual void ReceivePacket(size_t port, WPARAM wParam) = 0;
-
-private:
-	//Private Methods
-
-	//Private Variables
 };
 

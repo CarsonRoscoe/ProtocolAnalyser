@@ -1,84 +1,132 @@
+/*------------------------------------------------------------------------------------------------------------------
+-- SOURCE FILE: TCP.cpp
+--
+-- PROGRAM: ProtocolAnalyzer
+--
+-- METHODS:
+-- void TCP::SendPacket(size_t port, char* IP, size_t packetSize, size_t packetsToSend)
+-- void TCP::Cleanup()
+-- void TCP::StartServer(int port)
+-- void TCP::ReceivePacket(size_t port, WPARAM wParam)
+--
+-- DATE: February 10th, 2016
+--
+-- REVISIONS: February 10th, 2016: Created TCP setup
+--			  February 13th, 2016: Finished TCP
+--
+-- DESIGNER: Carson Roscoe
+--
+-- PROGRAMMER: Carson Roscoe
+--
+-- NOTES:
+-- Method definitions for the TCP class. The TCP class is used to communicate via TCP. 
+----------------------------------------------------------------------------------------------------------------------*/
 #include "TCP.h"
 
-#define BUFFER 64
-#define IPBUFFER 16
-#define PROTOCOL "tcp"
-#define EOT (char)3
+#define EOT (char)17
 
 extern HWND hwnd;
 extern HWND textBoxResult;
 struct	hostent	*hp;
 struct	sockaddr_in server, client;
-
-#define CreateThread(func,id) CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)(func),(LPVOID)hwnd,0,(LPDWORD)(id))
-
-size_t size;
-u_short port;
-size_t quantity;
-char IP[IPBUFFER];
 SOCKET connection;
-DWORD threadId;
-HANDLE thread;
 
-TCP::TCP(Mode mode) {
-}
-
-TCP::~TCP() {
-	TerminateThread(thread, 1);
-}
-
-void TCP::StartServer() {
-	DWORD Ret;
-	SOCKET Listen;
-	SOCKADDR_IN InternetAddr;
+/*------------------------------------------------------------------------------------------------------------------
+-- METHOD: StartServer
+--
+-- DATE: February 11th, 2016
+--
+-- REVISIONS: February 11th, 2016: Created StartServer
+--			  February 15th, 2016: Commented
+--
+-- DESIGNER: Carson Roscoe
+--
+-- PROGRAMMER: Carson Roscoe
+--
+-- INTERFACE: void TCP::StartServer(int port)
+--
+-- RETURN: void
+--
+-- NOTES:
+-- Called by WndProc when a user changes the mode to UDP while in server mode. Utilizes WSAAsyncSelect allow
+-- WndProc to receive events from the socket.
+----------------------------------------------------------------------------------------------------------------------*/
+void TCP::StartServer(int port) {
+	DWORD red;
+	SOCKET listenSocket;
+	SOCKADDR_IN internetAddr;
 	WSADATA wsaData;
 
-	if ((Ret = WSAStartup(0x0202, &wsaData)) != 0) {
-		perror("WSAStartup failed with error " + Ret);
+	if ((red = WSAStartup(0x0202, &wsaData)) != 0) {
+		perror("WSAStartup failed with error " + red);
 		return;
 	}
 
-	if ((Listen = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+	if ((listenSocket = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
 		perror("socket() failed with error " + WSAGetLastError());
 		return;
 	}
 
-	WSAAsyncSelect(Listen, hwnd, WM_SOCKET, FD_ACCEPT | FD_CLOSE);
+	WSAAsyncSelect(listenSocket, hwnd, WM_SOCKET, FD_ACCEPT | FD_CLOSE);
 
-	InternetAddr.sin_family = AF_INET;
-	InternetAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	InternetAddr.sin_port = htons(DEFAULTPORT);
+	internetAddr.sin_family = AF_INET;
+	internetAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	internetAddr.sin_port = htons(port);
 
-	if (bind(Listen, (PSOCKADDR)&InternetAddr, sizeof(InternetAddr)) == SOCKET_ERROR) {
+	if (bind(listenSocket, (PSOCKADDR)&internetAddr, sizeof(internetAddr)) == SOCKET_ERROR) {
 		perror("bind() failed with error " + WSAGetLastError());
 		return;
 	}
 
-	if (listen(Listen, 5)) {
+	if (listen(listenSocket, 5)) {
 		perror("listen() failed with error " + WSAGetLastError());
 		return;
 	}
 }
 
-void TCP::SendPacket(size_t port, char* IP, size_t size, size_t quantity) {
+/*------------------------------------------------------------------------------------------------------------------
+-- METHOD: SendPacket
+--
+-- DATE: February 11th, 2016
+--
+-- REVISIONS: February 11th, 2016: SendPacket
+--			  February 15th, 2016: Commented
+--
+-- DESIGNER: Carson Roscoe
+--
+-- PROGRAMMER: Carson Roscoe
+--
+-- INTERFACE: void TCP::SendPacket(size_t port, char* IP, size_t packetSize, size_t packetsToSend)
+--
+-- RETURN: void
+--
+-- NOTES:
+-- Called by WndProc in WinMain whenever the send button is pressed. Sends generated data via TCP to the given IP
+-- on the given port.
+----------------------------------------------------------------------------------------------------------------------*/
+void TCP::SendPacket(size_t port, char* IP, size_t packetSize, size_t packetsToSend) {
 	DWORD sb;
-	WSAOVERLAPPED ol;
-	WSABUF DataBuff;
-	char *Buffer;
+	WSAOVERLAPPED overlapped;
+	WSABUF dataBuff;
+	char *buffer;
 	INT err;
-	WSADATA WSAData;
+	WSADATA wsaData;
 	WORD wVersionRequested;
 
 	wVersionRequested = MAKEWORD(2, 2);
 
-	err = WSAStartup(wVersionRequested, &WSAData);
+	//Setup WSA
+	err = WSAStartup(wVersionRequested, &wsaData);
 	if (err != 0) {
-		exit(1);
+		WSACleanup();
+		return;
 	}
 
+	//Create socket
 	if ((connection = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED)) == INVALID_SOCKET) {
 		perror("Cannot create socket");
-		exit(1);
+		WSACleanup();
+		return;
 	}
 
 	// Initialize and set up the address structure
@@ -86,175 +134,180 @@ void TCP::SendPacket(size_t port, char* IP, size_t size, size_t quantity) {
 	server.sin_family = AF_INET;
 	server.sin_port = htons(port);
 
+	//Resolve host
 	if ((hp = gethostbyname(IP)) == NULL) {
 		perror("Unknown server address");
-		exit(1);
+		WSACleanup();
+		return;
 	}
 
-	// Copy the server address
+	//Copy the server address
 	memcpy((char *)&server.sin_addr, hp->h_addr, hp->h_length);
 
-	// Connecting to the server
+	//Connecting to the server
 	if (connect(connection, (struct sockaddr *)&server, sizeof(server)) == -1) {
 		perror("Can't connect to server");
-		exit(1);
+		WSACleanup();
+		return;
 	}
 
-	Buffer = (char*)malloc(size * sizeof(char));
+	buffer = (char*)malloc(packetSize * sizeof(char));
 
-	if ((ol.hEvent = WSACreateEvent()) == WSA_INVALID_EVENT) {
+	//Create WSA event
+	if ((overlapped.hEvent = WSACreateEvent()) == WSA_INVALID_EVENT) {
 		perror("WSACreateEvent failed");
-		exit(1);
+		WSACleanup();
+		return;
 	}
 
-	/* Send the data */
-	for (size_t i = 0; i < quantity; i++) {
+	//Send data
+	for (size_t i = 0; i < packetsToSend; i++) {
 		int k = 0;
-		for (size_t j = 0; j < size; j++) {
+		for (size_t j = 0; j < packetSize; j++) {
 			k = (j < 26) ? j : j % 26;
-			Buffer[j] = 'a' + k;
+			buffer[j] = 'a' + k;
 		}
 
-		if (i == quantity - 1)
-			Buffer[size - 1] = EOT;
+		dataBuff.buf = buffer;
+		dataBuff.len = packetSize;
 
-		DataBuff.buf = Buffer;
-		DataBuff.len = size;
-		if (WSASend(connection, &DataBuff, 1, &sb, 0, &ol, NULL) == SOCKET_ERROR) {
-			int error = WSAGetLastError();
-			OutputDebugString("" + error);
-			perror("WSASend failed");
-			exit(1);
-		};
-		//Sleep(50);
+		WSASend(connection, &dataBuff, 1, &sb, 0, &overlapped, NULL);
+		WaitForSingleObject(&overlapped.hEvent, 1000);
+		overlapped.hEvent = WSACreateEvent();
 	}
 
+	SleepEx(5, TRUE);
 	closesocket(connection);
 	WSACleanup();
 };
 
+/*------------------------------------------------------------------------------------------------------------------
+-- METHOD: Accept
+--
+-- DATE: February 11th, 2016
+--
+-- REVISIONS: February 11th, 2016: Created Accept
+--			  February 15th, 2016: Commented
+--
+-- DESIGNER: Carson Roscoe
+--
+-- PROGRAMMER: Carson Roscoe
+--
+-- INTERFACE: void TCP::Accept(WPARAM wParam)
+--
+-- RETURN: void
+--
+-- NOTES:
+-- Called by WndProc when the WM_SOCKET's RD_ACCEPT call fires off
+----------------------------------------------------------------------------------------------------------------------*/
 void TCP::Accept(WPARAM wParam) {
 	closesocket(connection);
-	if ((connection = accept(wParam, NULL, NULL)) == INVALID_SOCKET)
-	{
+	if ((connection = accept(wParam, NULL, NULL)) == INVALID_SOCKET) {
 		perror("accept() failed with error " + WSAGetLastError());
 		return;
 	}
 
-	CreateSocketInformation(connection);
-
-
 	WSAAsyncSelect(connection, hwnd, WM_SOCKET, FD_READ | FD_WRITE | FD_CLOSE);
 }
 
+/*------------------------------------------------------------------------------------------------------------------
+-- METHOD: CleanUp
+--
+-- DATE: February 11th, 2016
+--
+-- REVISIONS: February 11th, 2016: Created Cleanup
+--			  February 15th, 2016: Commented
+--
+-- DESIGNER: Carson Roscoe
+--
+-- PROGRAMMER: Carson Roscoe
+--
+-- INTERFACE: void TCP::Cleanup()
+--
+-- RETURN: void
+--
+-- NOTES:
+-- Called by WndProc when the socket needs to be closed.
+----------------------------------------------------------------------------------------------------------------------*/
 void TCP::Cleanup() {
-	TerminateThread(thread, 1);
 	closesocket(connection);
 }
 
+/*------------------------------------------------------------------------------------------------------------------
+-- METHOD: ReceivePacket
+--
+-- DATE: February 11th, 2016
+--
+-- REVISIONS: February 11th, 2016: Created ReceivePacket
+--			  February 15th, 2016: Commented
+--
+-- DESIGNER: Carson Roscoe
+--
+-- PROGRAMMER: Carson Roscoe
+--
+-- INTERFACE: void TCP::ReceivePacket(size_t port, WPARAM wParam)
+--
+-- RETURN: void
+--
+-- NOTES:
+-- Called by WndProc in WinMain whenever it receives an event from the user that data is ready to be read from
+-- the socket. Reads via TCP until nothing more can be read.
+----------------------------------------------------------------------------------------------------------------------*/
 void TCP::ReceivePacket(size_t port, WPARAM wParam) {
-	LPSOCKET_INFORMATION SocketInfo;
+	char buf[BUFFSIZE];
+	WSABUF buffer;
+	buffer.len = BUFFSIZE;
+	buffer.buf = buf;
 	DWORD RecvBytes;
 	DWORD Flags;
-	bool EOTRead = false;
 	long totalBytes = 0;
-	char bytesReadString[32];
-	int packetNum = 1;
-	SocketInfo = GetSocketInformation(wParam);
-	if (SocketInfo == NULL)
-		return;
-	try {
-		SocketInfo->DataBuf.buf = SocketInfo->Buffer;
-		SocketInfo->DataBuf.len = BUFFSIZE;
-	} catch (int e) {
-		return;
-	}
-
+	char bytesReadString[64];
+	int packetNum = 0;
+	int timeout = 0;
 	Flags = 0;
+
+	//Get start time for timer
+	SYSTEMTIME time;
+	GetSystemTime(&time);
+	WORD millis = (time.wSecond * 1000) + time.wMilliseconds;
+
+	//Reading loop
 	do {
-		if (WSARecv(SocketInfo->Socket, &(SocketInfo->DataBuf), 1, &RecvBytes, &Flags, NULL, NULL) == SOCKET_ERROR) {
+		RecvBytes = 0;
+		if (WSARecv(connection, &buffer, 1, &RecvBytes, &Flags, NULL, NULL) == SOCKET_ERROR) {
 			if (WSAGetLastError() != WSAEWOULDBLOCK) {
-				printf("WSARecv() failed with error %d\n", WSAGetLastError());
-				FreeSocketInformation(wParam);
-				return;
+				break;
 			}
 		}
 		else {
-			SocketInfo->BytesRECV = RecvBytes;
-			totalBytes += RecvBytes;
-			if (RecvBytes == 0)
-				continue;
-			sprintf(bytesReadString, "%d", totalBytes);
-			SetWindowText(textBoxResult, bytesReadString);
-			if (SocketInfo->DataBuf.buf[RecvBytes - 1] == EOT) {
-				EOTRead = true;
-				printf("Found EOT\n");
+			if (RecvBytes == 0) {
+				if (timeout < 5) {
+					timeout++;
+					continue;
+				}
+				break;
 			}
+			timeout = 0;
+			totalBytes += RecvBytes;
 		}
-	} while (!EOTRead);
+	} while (true);
 
+	if (totalBytes == 0)
+		return;
+
+	//Get end time for timer
+	GetSystemTime(&time);
+	DWORD endMillis = (time.wSecond * 1000) + time.wMilliseconds;
+
+	//Calculate difference and store into bytesReadString
+	sprintf(bytesReadString, "Bytes Read:%d Transfer Time(millis):%d", totalBytes, endMillis - millis);
+
+	//Update UI with statistics
+	SetWindowText(textBoxResult, bytesReadString);
+
+	//Wait for server to finish
+	SleepEx(100, false);
+
+	//Close connection
 	closesocket(connection);
 };
-
-LPSOCKET_INFORMATION SocketInfoList;
-
-void CreateSocketInformation(SOCKET s)
-{
-	LPSOCKET_INFORMATION SI;
-
-	if ((SI = (LPSOCKET_INFORMATION)GlobalAlloc(GPTR, sizeof(SOCKET_INFORMATION))) == NULL)
-	{
-		printf("GlobalAlloc() failed with error %d\n", GetLastError());
-		return;
-	}
-
-	// Prepare SocketInfo structure for use.
-
-	SI->Socket = s;
-	SI->RecvPosted = FALSE;
-	SI->BytesSEND = 0;
-	SI->BytesRECV = 0;
-
-	SI->Next = SocketInfoList;
-
-	SocketInfoList = SI;
-}
-
-LPSOCKET_INFORMATION GetSocketInformation(SOCKET s)
-{
-	SOCKET_INFORMATION *SI = SocketInfoList;
-
-	while (SI)
-	{
-		if (SI->Socket == s)
-			return SI;
-
-		SI = SI->Next;
-	}
-
-	return NULL;
-}
-
-void FreeSocketInformation(SOCKET s)
-{
-	SOCKET_INFORMATION *SI = SocketInfoList;
-	SOCKET_INFORMATION *PrevSI = NULL;
-
-	while (SI)
-	{
-		if (SI->Socket == s)
-		{
-			if (PrevSI)
-				PrevSI->Next = SI->Next;
-			else
-				SocketInfoList = SI->Next;
-
-			closesocket(SI->Socket);
-			GlobalFree(SI);
-			return;
-		}
-
-		PrevSI = SI;
-		SI = SI->Next;
-	}
-}
